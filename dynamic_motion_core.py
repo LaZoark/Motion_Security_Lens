@@ -1,20 +1,21 @@
 import cv2, pandas
 import numpy as np
 from datetime import datetime
+
 # List when any moving object appear
-motion_list = [ None, None ]
+motion_list = [None, None]
 # Time of movement
 time = []
 # Initializing DataFrame, one column is start 
 # time and other column is end time
-df = pandas.DataFrame(columns = ["Start", "End"])
+df = pandas.DataFrame(columns=["Start", "End"])
 
 DETECT_AREA = 2400
 DAMPING_RATE = 0.008
 cap = cv2.VideoCapture(1)
 # cap = cv2.VideoCapture("http://192.168.1.8:81")
 win_name = "frame_"
-   
+
 # 取得影像的尺寸大小 and fps
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -25,19 +26,21 @@ ret, frame = cap.read()
 avg = cv2.blur(frame, (4, 4))
 avg_float = np.float32(avg)
 output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-fourcc = cv2.VideoWriter_fourcc(*'XVID')# 使用 XVID 編碼
+fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 XVID 編碼
 # 建立 VideoWriter 物件，輸出影片至 output.avi
 out = cv2.VideoWriter("video\\" + output_name + ".avi", fourcc, fps, (width, height))
 print("FPS: ", fps)
 # on_top = True
 i = 0
+
+
 def on_mouse_event(event, x, y, flags, param):
     global DAMPING_RATE, output_name, i
     # print("EVENT:", event, '\n', flags)
-    if event == 10:     # mousewheel event code is 10
-        if flags > 0:   # scroll up
+    if event == 10:  # mousewheel event code is 10
+        if flags > 0:  # scroll up
             DAMPING_RATE += 0.0005
-        else:   # scroll down
+        else:  # scroll down
             DAMPING_RATE -= 0.0005
     if event == cv2.EVENT_LBUTTONDOWN:  # 1
         if flags == cv2.EVENT_FLAG_LBUTTON:
@@ -53,18 +56,20 @@ def on_mouse_event(event, x, y, flags, param):
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     elif event == cv2.EVENT_LBUTTONDOWN and flags == cv2.EVENT_FLAG_CTRLKEY:
         cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
+
+
 while cap.isOpened():
     # 讀取一幅影格
     ret, frame = cap.read()
-  # 若讀取至影片結尾，則跳出
+    # 若讀取至影片結尾，則跳出
     if ret == False:
         break
     # Initializing motion = 0(no motion)
     motion = 0
-  # 模糊處理
+    # 模糊處理
     blur = cv2.blur(frame, (4, 4))
 
-  # 計算目前影格與平均影像的差異值
+    # 計算目前影格與平均影像的差異值
     diff = cv2.absdiff(avg, blur)
 
     # 將圖片轉為灰階
@@ -110,22 +115,22 @@ while cap.isOpened():
 
         # 畫出外框
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    
+
     # Appending status of motion
     motion_list.append(motion)
     motion_list = motion_list[-2:]
-  
+
     # Appending Start time of motion
     if motion_list[-1] == 1 and motion_list[-2] == 0:
         time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
-  
+
     # Appending End time of motion
     if motion_list[-1] == 0 and motion_list[-2] == 1:
         time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
-    
+
     # 畫出等高線（除錯用）
     cv2.drawContours(frame, cnts, -1, (0, 255, 255), 1)
-    
+
     # 顯示偵測結果影像
     cv2.setMouseCallback(win_name, on_mouse_event)
     cv2.imshow(win_name, frame)
@@ -134,7 +139,7 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
 
     if key == 27 or key == 113:
-         # if something is movingthen it append the end time of movement
+        # if something is movingthen it append the end time of movement
         if motion == 1:
             time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
         break
@@ -146,7 +151,7 @@ while cap.isOpened():
     #         if on_top:
     #             cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
     #         on_top = not on_top
-    elif key == 115 or key == 83:   # press 's' or 'S' to save the video
+    elif key == 115 or key == 83:  # press 's' or 'S' to save the video
         out.release()
         output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
         out = cv2.VideoWriter("video\\" + output_name + ".avi", fourcc, fps, (width, height))
@@ -154,11 +159,11 @@ while cap.isOpened():
     # 更新平均影像
     cv2.accumulateWeighted(blur, avg_float, DAMPING_RATE)
     avg = cv2.convertScaleAbs(avg_float)
-    
+
 # Appending time of motion in DataFrame
 for i in range(0, len(time), 2):
-    df = df.append({"Start":time[i], "End":time[i + 1]}, ignore_index = True)
-  
+    df = df.append({"Start": time[i], "End": time[i + 1]}, ignore_index=True)
+
 # Creating a CSV file in which time of movements will be saved
 df.to_csv("video\\" + output_name + ".csv")
 print("log has been saved.")
