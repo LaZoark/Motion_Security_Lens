@@ -164,7 +164,6 @@ def cctv(url_, videoPath, imagePath):
 
         cv2.setMouseCallback(win_name, on_mouse_event)
         cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow(win_name, (320, 240))
         cv2.imshow(win_name, frame)
 
         key = cv2.waitKey(1) & 0xFF
@@ -183,6 +182,8 @@ def cctv(url_, videoPath, imagePath):
         #         if on_top:
         #             cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
         #         on_top = not on_top
+        elif key == ord('r') or key == ord('R'):
+            cv2.resizeWindow(win_name, (320, 240))
         elif key == 115 or key == 83:  # press 's' or 'S' to save the video
             out.release()
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -207,27 +208,7 @@ def cctv(url_, videoPath, imagePath):
 
 if __name__ == '__main__':
     from folder_path_popup import ask_folder_popup
-    import os
-
-    root_dir = ask_folder_popup()
-    if os.path.exists(root_dir):
-        # mkdir = input("""Can't find "{}". Would you like to make one?[Y/n]""".format(root_dir))
-        # if mkdir == 'Y' or mkdir == 'y':
-        #     os.makedirs(root_dir)
-        # else:
-        #     exit('There might be a better locate to place these data')
-        video_path = root_dir + f"/video/"
-        capture_path = root_dir + f"/image/"
-    else:
-        print("""Can't find "{}". Using default path.""".format(root_dir))
-        video_path = "video//"
-        capture_path = "image//"
-    if not os.path.exists(video_path):
-        print("""Can't find "{}". making one for you!""".format(video_path))
-        os.makedirs(video_path)
-    if not os.path.exists(capture_path):
-        print("""Can't find "{}". making one for you!""".format(capture_path))
-        os.makedirs(capture_path)
+    video_path, capture_path = ask_folder_popup()
 
     p_list = []
     for j in url_list:
