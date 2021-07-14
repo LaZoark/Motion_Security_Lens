@@ -12,6 +12,7 @@ It was obviously that I got tons of stuff to improve. and I made this project ju
 1. **Motion Detector** : It will film automatically whenever the moving event occur. 
 * NOTICE that it only capture the frame around the movement.
 * This might lead to *JUMPING FRAME*.
+2. **Adjustable monitor** : Adjust the size of the window with your mouse. Whenever you want to recover to the default window size, just press `keyboard "r"`.
 3. **Quick Save** : `Mouse Left click` will save the image.
 4. **Quick Adjust** : `Mouse Wheel` can increase/decrease the value (motion threshold) on the frame.
 5. **Stay An Top** : `Mouse Left click + Ctrl` will keep the window on top. (press 'X' to reset the window.)
@@ -33,5 +34,6 @@ Get more info about the [valid type](https://docs.opencv.org/3.4/d4/da8/group__i
 Feel free to Issue the problem or fork/pull the project!
 
 ## TODO
-1. Integral the frames as a single monitor.
-2. ....No inspiration yet
+- [ ] Integral the frames as a single monitor.
+- [ ] Find out all stream source automatically.
+- [ ] ....No inspiration yet
