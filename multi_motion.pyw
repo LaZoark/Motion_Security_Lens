@@ -1,4 +1,4 @@
-import cv2, pandas
+import cv2  #, pandas
 import numpy as np
 from datetime import datetime
 import multiprocessing as mp
@@ -12,7 +12,7 @@ import multiprocessing as mp
 i = 0
 toggle = True
 
-url_list = [  # streaming sourse
+url_list = [  # streaming source
     "http://192.168.1.8:81",
     # "http://192.168.1.34:81",
     "http://192.168.1.35:81",
@@ -51,13 +51,15 @@ def cctv(url_, videoPath, imagePath):
 
     # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width = 640
-    height = 480
+    width = 640    # 640
+    height = 480    # 480
+    font_size = 0.8
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     # init the avg_background
     ret, frame = cap.read()
-    frame = cv2.resize(frame, (width, height))  # force "VGA" size
+    # frame = cv2.resize(frame, (width*2, height*2))  # force "VGA" size
+    frame = cv2.resize(frame, (width, height))
     avg = cv2.blur(frame, (4, 4))
     avg_float = np.float32(avg)
     output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -118,19 +120,19 @@ def cctv(url_, videoPath, imagePath):
         detect_area = "DETECT_AREA: {}".format(DETECT_AREA)
         damping_rate = "DAMPING_RATE: {:.4f}".format(DAMPING_RATE)
         cv2.putText(frame, detect_area, (9, 19), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8, (150, 0, 0), 1)
+                    font_size, (150, 0, 0), 1)
         cv2.putText(frame, detect_area, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8, (0, 255, 255), 1)
+                    font_size, (0, 255, 255), 1)
         cv2.putText(frame, damping_rate, (10, 40), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8, (150, 0, 0), 1)
+                    font_size, (150, 0, 0), 1)
         cv2.putText(frame, damping_rate, (9, 39), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8, (255, 0, 255), 1)
+                    font_size, (255, 0, 255), 1)
         cv2.putText(frame, datetime.now().strftime("%Y%m%d %A %p%I:%M:%S"),
                     (8, frame.shape[0] - 8), cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (200, 50, 0), 2)
+                    font_size, (200, 50, 0), 1)
         cv2.putText(frame, datetime.now().strftime("%Y%m%d %A %p%I:%M:%S"),
                     (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (50, 200, 255), 2)
+                    font_size, (50, 200, 255), 1)
 
         # cv2.putText(frame, "SYNCHRONIZE!!!" + str(toggle), (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (55, 55, 88), 1)
 
@@ -161,6 +163,8 @@ def cctv(url_, videoPath, imagePath):
             cv2.drawContours(frame, cnts, -1, (0, 255, 255), 1)
 
         cv2.setMouseCallback(win_name, on_mouse_event)
+        cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+        # cv2.resizeWindow(win_name, (320, 240))
         cv2.imshow(win_name, frame)
 
         key = cv2.waitKey(1) & 0xFF
