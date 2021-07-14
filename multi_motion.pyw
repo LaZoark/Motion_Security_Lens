@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 import multiprocessing as mp
 # from ctypes import c_bool
-
+# test!!!
 # Manager to create shared object.
 # manager = mp.Manager()  # could shared across computers
 # i = mp.Value('i', 0)
