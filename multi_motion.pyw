@@ -2,33 +2,36 @@ import cv2, pandas
 import numpy as np
 from datetime import datetime
 import multiprocessing as mp
+
 # from ctypes import c_bool
-# test!!!
+
 # Manager to create shared object.
 # manager = mp.Manager()  # could shared across computers
 # i = mp.Value('i', 0)
+# toggle = mp.Value(c_bool, True)
 i = 0
 toggle = True
 
-url_list=[      # streaming sourse
+url_list = [  # streaming sourse
     "http://192.168.1.8:81",
     # "http://192.168.1.34:81",
     "http://192.168.1.35:81",
     "http://192.168.1.9:81",
     # "http://192.168.1.25:81",
     # "http://192.168.1.17:81",
-    ]
+]
 
-def cctv(url_):
+
+def cctv(url_, videoPath, imagePath):
     global DAMPING_RATE, DETECT_AREA, output_name, i, toggle
     param = [i, toggle]
     print("print(param)   ", param)
     # List when any moving object appear
-    motion_list = [ None, None ]
+    motion_list = [None, None]
     # Time of movement
     time = []
-# Initializing DataFrame, one column is start 
-# time and other column is end time
+    # Initializing DataFrame, one column is start
+    # time and other column is end time
     # df = pandas.DataFrame(columns = ["Start", "End"])
     if url_ == "http://192.168.1.9:81":
         DETECT_AREA = 100
@@ -45,13 +48,13 @@ def cctv(url_):
 
     cap = cv2.VideoCapture(url_)
     win_name = "Streaming_" + url_[7:]
-    
+
     # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     width = 640
     height = 480
     fps = cap.get(cv2.CAP_PROP_FPS)
-    
+
     # init the avg_background
     ret, frame = cap.read()
     frame = cv2.resize(frame, (width, height))  # force "VGA" size
@@ -59,7 +62,7 @@ def cctv(url_):
     avg_float = np.float32(avg)
     output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter("video\\" + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+    out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
     print(url_ + "/  FPS: ", fps)
 
     def on_mouse_event(event, x, y, flags, param):
@@ -68,33 +71,33 @@ def cctv(url_):
         # if not event == cv2.EVENT_MOUSEMOVE:
         #     # print("EVENT:", event, '\n', flags)
         #     print("print(param)   ", param)
-        if event == 2 and flags == 10:       # ctrl+Rm
+        if event == 2 and flags == 10:  # ctrl+Rm
             toggle = not toggle
             print("# ctrl+Rm")
-        if event == 10:     # mousewheel event code is 10
-            if flags > 0 and toggle is True:                 # scroll up
+        if event == 10:  # mousewheel event code is 10
+            if flags > 0 and toggle is True:  # scroll up
                 DETECT_AREA += 100
-            elif DETECT_AREA > 100 and toggle is True:      # scroll down
+            elif DETECT_AREA > 100 and toggle is True:  # scroll down
                 DETECT_AREA -= 100
-            elif flags > 0 and toggle is False:              # scroll up
+            elif flags > 0 and toggle is False:  # scroll up
                 DAMPING_RATE += 0.0005
             elif DAMPING_RATE > 0.0005 and toggle is False:  # scroll down
                 DAMPING_RATE -= 0.0005
         if event == cv2.EVENT_LBUTTONDOWN and flags == 9:  # ctrl+Lm to keep on top
             cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
             print("ON TOP!")
-        elif flags == cv2.EVENT_FLAG_LBUTTON:   # Lm to save img
+        elif flags == cv2.EVENT_FLAG_LBUTTON:  # Lm to save img
             later_st = datetime.now().strftime("%Y%m%d_%H%M%S")
             if output_name == later_st:
                 i += 1
-                cv2.imwrite("img\\" + later_st + '_' + str(i) + ".jpg", frame)
+                cv2.imwrite(imagePath + later_st + '_' + str(i) + ".jpg", frame)
                 print("saved image : ", later_st + '_' + str(i) + ".jpg")
             else:
                 i = 0
-                cv2.imwrite("img\\" + later_st + ".jpg", frame)
+                cv2.imwrite(imagePath + later_st + ".jpg", frame)
                 print("saved image : ", later_st + ".jpg")
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -109,7 +112,7 @@ def cctv(url_):
         kernel = np.ones((5, 5), np.uint8)
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
-    
+
         # Generate contour lines
         cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         detect_area = "DETECT_AREA: {}".format(DETECT_AREA)
@@ -128,43 +131,43 @@ def cctv(url_):
         cv2.putText(frame, datetime.now().strftime("%Y%m%d %A %p%I:%M:%S"),
                     (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
                     1, (50, 200, 255), 2)
-    
+
         # cv2.putText(frame, "SYNCHRONIZE!!!" + str(toggle), (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (55, 55, 88), 1)
-        
+
         for c in cnts:
             if cv2.contourArea(c) < DETECT_AREA:
                 continue
             motion = 1
-        # write into the video file
+            # write into the video file
             out.write(frame)
-        # put squares on moving objects.    (It will become a switch mode later)
+            # put squares on moving objects.    (It will become a switch mode later)
             (x, y, w, h) = cv2.boundingRect(c)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        
+
         # Appending status of motion
         motion_list.append(motion)
         motion_list = motion_list[-2:]
-      
+
         # Appending Start time of motion
         if motion_list[-1] == 1 and motion_list[-2] == 0:
             time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
-      
+
         # Appending End time of motion
         if motion_list[-1] == 0 and motion_list[-2] == 1:
             time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
-        
+
         # Draw the contour line(for DEBUG)
         if not toggle:
             cv2.drawContours(frame, cnts, -1, (0, 255, 255), 1)
 
         cv2.setMouseCallback(win_name, on_mouse_event)
         cv2.imshow(win_name, frame)
-        
+
         key = cv2.waitKey(1) & 0xFF
-    
+
         if key == 27 or key == 113:
             print("print(param)   ", param)
-             # if something is movingthen it append the end time of movement
+            # if something is movingthen it append the end time of movement
             if motion == 1:
                 time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
             break
@@ -176,44 +179,65 @@ def cctv(url_):
         #         if on_top:
         #             cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
         #         on_top = not on_top
-        elif key == 115 or key == 83:   # press 's' or 'S' to save the video
+        elif key == 115 or key == 83:  # press 's' or 'S' to save the video
             out.release()
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out = cv2.VideoWriter("video\\" + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
-            
-    
+            out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+
         # update the avg background
         cv2.accumulateWeighted(blur, avg_float, DAMPING_RATE)
         avg = cv2.convertScaleAbs(avg_float)
-        
-# Appending time of motion in DataFrame
+
+    # Appending time of motion in DataFrame
     # for i in range(0, len(time), 2):
     #     df = df.append({"Start":time[i], "End":time[i + 1]}, ignore_index = True)
-      
-# Creating a CSV file in which time of movements will be saved
-    # df.to_csv("video\\" + url_[17:-3] + "_" + output_name + ".csv")
+
+    # Creating a CSV file in which time of movements will be saved
+    # df.to_csv(videoPath + url_[17:-3] + "_" + output_name + ".csv")
     # print("log has been saved.")
 
     out.release()
     cap.release()
     cv2.destroyAllWindows()
 
+
 if __name__ == '__main__':
-    
-    # toggle = mp.Value(c_bool, True)
+    from folder_path_popup import ask_folder_popup
+    import os
+
+    root_dir = ask_folder_popup()
+    if os.path.exists(root_dir):
+        # mkdir = input("""Can't find "{}". Would you like to make one?[Y/n]""".format(root_dir))
+        # if mkdir == 'Y' or mkdir == 'y':
+        #     os.makedirs(root_dir)
+        # else:
+        #     exit('There might be a better locate to place these data')
+        video_path = root_dir + f"/video/"
+        capture_path = root_dir + f"/image/"
+    else:
+        print("""Can't find "{}". Using default path.""".format(root_dir))
+        video_path = "video//"
+        capture_path = "image//"
+    if not os.path.exists(video_path):
+        print("""Can't find "{}". making one for you!""".format(video_path))
+        os.makedirs(video_path)
+    if not os.path.exists(capture_path):
+        print("""Can't find "{}". making one for you!""".format(capture_path))
+        os.makedirs(capture_path)
+
     p_list = []
     for j in url_list:
-        p_list.append(mp.Process(target=cctv, args=(j, )))
-        
+        p_list.append(mp.Process(target=cctv, args=(j, video_path, capture_path, )))
+
     for p in p_list:
         p.start()
-        
+
     # Main Process 繼續執行自己的工作
     proc = mp.current_process()
     print(proc.name, proc.pid)
-    
+
     # 等待所有Process執行結束
     for p in p_list:
         p.join()
-    
+
     print("End safely.")
