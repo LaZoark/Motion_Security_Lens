@@ -34,6 +34,7 @@ Get more info about the [valid type](https://docs.opencv.org/3.4/d4/da8/group__i
 Feel free to Issue the problem or fork/pull the project!
 
 ## TODO
+- [X] Auto reconnect to the video source
 - [ ] Integral the frames as a single monitor.
 - [ ] Find out all stream source automatically.
 - [ ] ....No inspiration yet
