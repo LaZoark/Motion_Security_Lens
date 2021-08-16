@@ -2,6 +2,8 @@ import cv2  #, pandas
 import numpy as np
 from datetime import datetime
 import multiprocessing as mp
+import time as tt
+from reconnect import reset_attempts
 
 # from ctypes import c_bool
 
@@ -9,34 +11,28 @@ import multiprocessing as mp
 # manager = mp.Manager()  # could shared across computers
 # i = mp.Value('i', 0)
 # toggle = mp.Value(c_bool, True)
+
 i = 0
 toggle = True
 
 url_list = [  # streaming source
     "http://192.168.1.8:81",
     # "http://192.168.1.34:81",
-    "http://192.168.1.35:81",
+    # "http://192.168.1.35:81",
     "http://192.168.1.9:81",
     # "http://192.168.1.25:81",
-    # "http://192.168.1.17:81",
+    "http://192.168.1.7:81",
 ]
-
 
 def cctv(url_, videoPath, imagePath):
     global DAMPING_RATE, DETECT_AREA, output_name, i, toggle
-    param = [i, toggle]
-    print("print(param)   ", param)
-    # List when any moving object appear
-    motion_list = [None, None]
-    # Time of movement
-    time = []
-    # Initializing DataFrame, one column is start
-    # time and other column is end time
-    # df = pandas.DataFrame(columns = ["Start", "End"])
+    param = imagePath
+    # print("print(param)   ", param)
+    # print(imagePath)
     if url_ == "http://192.168.1.9:81":
         DETECT_AREA = 100
         DAMPING_RATE = 0.0085
-    elif url_ == "http://192.168.1.35:81":
+    elif url_ == "http://192.168.1.7:81":
         DETECT_AREA = 5700
         DAMPING_RATE = 0.0100
     elif url_ == "http://192.168.1.8:81":
@@ -46,30 +42,29 @@ def cctv(url_, videoPath, imagePath):
         DETECT_AREA = 5000
         DAMPING_RATE = 0.0100
 
-    cap = cv2.VideoCapture(url_)
+    # cap = cv2.VideoCapture(url_)
     win_name = "Streaming_" + url_[7:]
-
-    # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width = 640    # 640
-    height = 480    # 480
-    font_size = 0.8
-    fps = cap.get(cv2.CAP_PROP_FPS)
-
-    # init the avg_background
-    ret, frame = cap.read()
-    # frame = cv2.resize(frame, (width*2, height*2))  # force "VGA" size
-    frame = cv2.resize(frame, (width, height))
-    avg = cv2.blur(frame, (4, 4))
-    avg_float = np.float32(avg)
+    #
+    # # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    # # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # width = 640    # 640
+    # height = 480    # 480
+    # font_size = 0.8
+    # fps = cap.get(cv2.CAP_PROP_FPS)
+    #
+    # # init the avg_background
+    # ret, frame = cap.read()
+    # # frame = cv2.resize(frame, (width*2, height*2))  # force "VGA" size
+    # frame = cv2.resize(frame, (width, height))
+    # avg = cv2.blur(frame, (4, 4))
+    # avg_float = np.float32(avg)
     output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
-    print(url_ + "/  FPS: ", fps)
+    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    # out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+    # print(url_ + "/  FPS: ", fps)
 
     def on_mouse_event(event, x, y, flags, param):
         global DAMPING_RATE, DETECT_AREA, output_name, i, toggle
-        # i, toggle = param
         # if not event == cv2.EVENT_MOUSEMOVE:
         #     # print("EVENT:", event, '\n', flags)
         #     print("print(param)   ", param)
@@ -93,17 +88,83 @@ def cctv(url_, videoPath, imagePath):
             if output_name == later_st:
                 i += 1
                 cv2.imwrite(imagePath + later_st + '_' + str(i) + ".jpg", frame)
-                print("saved image : ", later_st + '_' + str(i) + ".jpg")
+                print("saved image : ", imagePath + later_st + '_' + str(i) + ".jpg")
             else:
                 i = 0
                 cv2.imwrite(imagePath + later_st + ".jpg", frame)
-                print("saved image : ", later_st + ".jpg")
+                print("saved image : ", imagePath + later_st + ".jpg")
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+    recall = True
+    attempts = reset_attempts()
+
+    ################################
+    # process_video(attempts)#, cap, win_name, on_mouse_event, videoPath, url_)
+    while recall:
+        cap = cv2.VideoCapture(url_)
+        if cap.isOpened():
+            print("[INFO] Camera connected at " +
+                  datetime.now().strftime("%m-%d-%Y %I:%M:%S%p"))
+            attempts = reset_attempts()
+            recall = process_video(attempts, cap, win_name, on_mouse_event, videoPath, url_)
+
+        else:
+            print("Camera not opened " +
+                  datetime.now().strftime("%m-%d-%Y %I:%M:%S%p"))
+            cap.release()
+            attempts -= 1
+            print("attempts: " + str(attempts))
+
+            # give the camera some time to recover
+            tt.sleep(5)
+            continue
+    # Appending time of motion in DataFrame
+    # for i in range(0, len(time), 2):
+    #     df = df.append({"Start":time[i], "End":time[i + 1]}, ignore_index = True)
+
+    # Creating a CSV file in which time of movements will be saved
+    # df.to_csv(videoPath + url_[17:-3] + "_" + output_name + ".csv")
+    # print("log has been saved.")
+
+
+def process_video(attempts, cap, win_name, on_mouse_event, videoPath, url_):
+    # global cap, win_name, videoPath, url_
+    global frame
+    # List when any moving object appear
+    motion_list = [None, None]
+    # Time of movement
+    time = []
+    # Initializing DataFrame, one column is start
+    # time and other column is end time
+    # df = pandas.DataFrame(columns = ["Start", "End"])
+
+    # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = 640    # 640
+    height = 480    # 480
+    font_size = 0.8
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    # init the avg_background
+    ret, frame = cap.read()
+    # frame = cv2.resize(frame, (width*2, height*2))  # force "VGA" size
+    frame = cv2.resize(frame, (width, height))
+    avg = cv2.blur(frame, (4, 4))
+    avg_float = np.float32(avg)
+    output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+    print(url_ + "/  FPS: ", fps)
+    while True:
+        grabbed, frame = cap.read()
+        if not grabbed:
+            print("disconnected!")
+            cap.release()
+            if attempts > 0:
+                tt.sleep(5)
+                return True
+            else:
+                return False
         frame = cv2.resize(frame, (width, height))  # force "VGA" size
         # Initializing motion = 0(no motion)
         motion = 0
@@ -169,7 +230,7 @@ def cctv(url_, videoPath, imagePath):
         key = cv2.waitKey(1) & 0xFF
 
         if key == 27 or key == 113:
-            print("print(param)   ", param)
+            # print("print(param)   ", param)
             # if something is movingthen it append the end time of movement
             if motion == 1:
                 time.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
@@ -183,24 +244,17 @@ def cctv(url_, videoPath, imagePath):
         #             cv2.setWindowProperty(win_name, cv2.WND_PROP_TOPMOST, 1)
         #         on_top = not on_top
         elif key == ord('r') or key == ord('R'):
-            cv2.resizeWindow(win_name, (320, 240))
+            cv2.resizeWindow(win_name, 320, 240)
         elif key == 115 or key == 83:  # press 's' or 'S' to save the video
             out.release()
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
             out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
-
+        elif key == ord('x'):
+            cap.release()
+            print("disconnect testing...")
         # update the avg background
         cv2.accumulateWeighted(blur, avg_float, DAMPING_RATE)
         avg = cv2.convertScaleAbs(avg_float)
-
-    # Appending time of motion in DataFrame
-    # for i in range(0, len(time), 2):
-    #     df = df.append({"Start":time[i], "End":time[i + 1]}, ignore_index = True)
-
-    # Creating a CSV file in which time of movements will be saved
-    # df.to_csv(videoPath + url_[17:-3] + "_" + output_name + ".csv")
-    # print("log has been saved.")
-
     out.release()
     cap.release()
     cv2.destroyAllWindows()
