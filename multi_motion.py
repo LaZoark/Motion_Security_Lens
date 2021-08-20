@@ -14,7 +14,6 @@ from reconnect import reset_attempts
 
 i = 0
 toggle = True
-
 url_list = [  # streaming source
     "http://192.168.1.8:81",
     # "http://192.168.1.34:81",
@@ -27,8 +26,6 @@ url_list = [  # streaming source
 def cctv(url_, videoPath, imagePath):
     global DAMPING_RATE, DETECT_AREA, output_name, i, toggle
     param = imagePath
-    # print("print(param)   ", param)
-    # print(imagePath)
     if url_ == "http://192.168.1.9:81":
         DETECT_AREA = 100
         DAMPING_RATE = 0.0085
@@ -152,8 +149,8 @@ def process_video(attempts, cap, win_name, on_mouse_event, videoPath, url_):
     avg = cv2.blur(frame, (4, 4))
     avg_float = np.float32(avg)
     output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".mp4", fourcc, fps, (width, height))
     print(url_ + "/  FPS: ", fps)
     while True:
         grabbed, frame = cap.read()
@@ -248,7 +245,7 @@ def process_video(attempts, cap, win_name, on_mouse_event, videoPath, url_):
         elif key == 115 or key == 83:  # press 's' or 'S' to save the video
             out.release()
             output_name = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".avi", fourcc, fps, (width, height))
+            out = cv2.VideoWriter(videoPath + url_[17:-3] + "_" + output_name + ".mp4", fourcc, fps, (width, height))
         elif key == ord('x'):
             cap.release()
             print("disconnect testing...")
